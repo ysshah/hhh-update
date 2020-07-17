@@ -1,0 +1,4 @@
+requests
+praw
+pymongo[srv]
+unidecode
