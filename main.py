@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from time import sleep
 import util
 
 DELTA = timedelta(days=1)
@@ -11,10 +12,10 @@ def insert(db):
   while after < limit:
     posts = util.get_pushshift_posts(after, before)
     print(f'Retrieved {len(posts)} posts from {after} to {before}')
-    if len(posts) == 0: return
     db.insert(posts)
     after += DELTA
     before += DELTA
+    sleep(1)  # Set rate limit to 1 QPS: https://pypi.org/project/pushshift.py
 
 def update_scores(db, cursor):
   posts = list(cursor)

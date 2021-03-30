@@ -18,7 +18,7 @@ class Database():
     self.client = pymongo.MongoClient(environ['MONGODB_URI'])
 
   def insert(self, posts):
-    return self.client.hhh.posts.insert_many(posts)
+    return self.client.hhh.posts.insert_many(posts) if posts else None
 
   def update_score(self, post_id):
     return self.client.hhh.posts.update_one(
