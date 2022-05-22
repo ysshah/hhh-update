@@ -1,4 +1,4 @@
-requests
 praw
-pymongo[srv]
+psycopg[binary]
+requests
 unidecode
