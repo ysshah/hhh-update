@@ -1,3 +1,16 @@
+'''
+To get the schema:
+
+SELECT column_name, data_type, character_maximum_length, is_nullable
+FROM information_schema.columns
+WHERE table_name = 'post'
+
+Update score if:
+- Post is less than 1 day old and score is at least 1 hour old
+- Post is less than 1 week old and score is at least 1 day old
+- Post is less than 1 month old and score is at least 1 week old
+- Post is more than 1 month old and score is less than 1 month older than the post
+'''
 import os
 from dataclasses import dataclass
 from datetime import datetime
@@ -6,7 +19,7 @@ from typing import Optional
 import psycopg
 from psycopg.rows import class_row
 
-from util import PushshiftPost
+from pushshift import PushshiftPost
 import reddit
 
 
@@ -24,7 +37,7 @@ def create_table():
   with psycopg.connect(os.environ['DATABASE_URL']) as connection:
     connection.execute('''
       CREATE TABLE post (
-        id CHARACTER(6) PRIMARY KEY NOT NULL,
+        id VARCHAR(10) PRIMARY KEY NOT NULL,
         title VARCHAR(300) NOT NULL,
         url TEXT NOT NULL,
         score INTEGER,
@@ -84,12 +97,16 @@ def get_scoreless_posts() -> list[str]:
 
 def get_timestamp_of_latest_post() -> datetime:
   with psycopg.connect(os.environ['DATABASE_URL']) as connection:
-    return connection.execute('SELECT MAX(created) FROM post').fetchone()[0]
+    if not (timestamp := connection.execute('SELECT MAX(created) FROM post').fetchone()):
+      raise RuntimeError('Unable to fetch timestamp of latest post')
+    return timestamp[0]
 
 
 def get_timestamp_of_oldest_post() -> datetime:
   with psycopg.connect(os.environ['DATABASE_URL']) as connection:
-    return connection.execute('SELECT MIN(created) FROM post').fetchone()[0]
+    if not (timestamp := connection.execute('SELECT MIN(created) FROM post').fetchone()):
+      raise RuntimeError('Unable to fetch timestamp of latest post')
+    return timestamp[0]
 
 
 if __name__ == '__main__':

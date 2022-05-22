@@ -1,17 +1,15 @@
 from datetime import datetime, timedelta, timezone
 from time import sleep
 
-from pymongo.cursor import Cursor
-
 import db
 import reddit
-import util
+import pushshift
 
 DELTA = timedelta(days=1)
 
 
 def insert_posts(after: datetime, before: datetime):
-  posts = util.get_pushshift_posts(after, before)
+  posts = pushshift.get_pushshift_posts(after, before)
   print(f'Retrieved {len(posts)} posts from {after} to {before}')
   if len(posts) < 100:
     db.insert(posts)
@@ -30,7 +28,7 @@ def insert_posts(after: datetime, before: datetime):
 def insert_old_posts():
   before = db.get_timestamp_of_oldest_post()
   after = before - DELTA
-  while before > datetime(2022, 1, 1, tzinfo=timezone.utc):
+  while before > datetime(2010, 6, 19, tzinfo=timezone.utc):
     insert_posts(after, before)
     after -= DELTA
     before -= DELTA
