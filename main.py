@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
 from time import sleep
 
+from tqdm import tqdm
+
 import db
 import reddit
 import pushshift
@@ -49,7 +51,7 @@ def insert_new_posts():
 
 def update_scores(post_ids: list[str]):
   print(f'Updating the scores of {len(post_ids)} posts')
-  for post_id in post_ids:
+  for post_id in tqdm(post_ids):
     db.set_score(post_id, reddit.get_score(post_id))
 
 

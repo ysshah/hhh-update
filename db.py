@@ -13,14 +13,12 @@ Update score if:
 '''
 import os
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 import psycopg
-from psycopg.rows import class_row
 
 from pushshift import PushshiftPost
-import reddit
 
 
 @dataclass
@@ -82,7 +80,6 @@ def insert_with_duplicates(posts: list[PushshiftPost]):
 
 
 def set_score(id: str, score: int):
-  print(f'Setting post {id} = {score}')
   with psycopg.connect(os.environ['DATABASE_URL']) as connection:
     connection.execute('UPDATE post SET score = %s, updated = %s WHERE id = %s',
                        [score, datetime.utcnow(), id])
@@ -109,11 +106,19 @@ def get_timestamp_of_oldest_post() -> datetime:
     return timestamp[0]
 
 
+def get_outdated_posts():
+  with psycopg.connect(os.environ['DATABASE_URL']) as connection:
+    rows = connection.execute(
+      'SELECT id FROM post WHERE NOW() - created < %s AND updated - created > %s',
+      [timedelta(days=30), timedelta(days=7)]).fetchall()
+    # [timedelta(days=1), timedelta(hours=1)]).fetchall()
+    print(len(rows))
+
+
+def mark_duplicates():
+  with psycopg.connect(os.environ['DATABASE_URL']) as connection:
+    pass
+
+
 if __name__ == '__main__':
-  print(
-    insert_with_duplicates([{
-      'id': 'u7ykkv',
-      'title': '[FRESH] Peaceful Piranha - My Funky Buddha',
-      'url': 'https://youtu.be/bBLBdH3GLFM',
-      'created_utc': 0
-    }]))
+  get_outdated_posts()
