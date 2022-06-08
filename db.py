@@ -1,7 +1,7 @@
 '''
-To get the schema:
+To get the schema (https://www.postgresql.org/docs/current/infoschema-columns.html):
 
-SELECT column_name, data_type, character_maximum_length, is_nullable
+SELECT column_name, data_type, column_default, is_nullable, character_maximum_length
 FROM information_schema.columns
 WHERE table_name = 'post'
 
@@ -13,7 +13,7 @@ Update score if:
 '''
 import os
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional
 
 import psycopg
@@ -102,22 +102,30 @@ def get_timestamp_of_latest_post() -> datetime:
 def get_timestamp_of_oldest_post() -> datetime:
   with psycopg.connect(os.environ['DATABASE_URL']) as connection:
     if not (timestamp := connection.execute('SELECT MIN(created) FROM post').fetchone()):
-      raise RuntimeError('Unable to fetch timestamp of latest post')
+      raise RuntimeError('Unable to fetch timestamp of oldest post')
     return timestamp[0]
 
 
-def get_outdated_posts():
+def get_outdated_posts() -> list[str]:
   with psycopg.connect(os.environ['DATABASE_URL']) as connection:
-    rows = connection.execute(
-      'SELECT id FROM post WHERE NOW() - created < %s AND updated - created > %s',
-      [timedelta(days=30), timedelta(days=7)]).fetchall()
-    # [timedelta(days=1), timedelta(hours=1)]).fetchall()
-    print(len(rows))
+    rows = connection.execute('''
+      SELECT id FROM post WHERE
+      (NOW() - created < INTERVAL  '1' DAY AND NOW() - updated > INTERVAL '1' HOUR) OR
+      (NOW() - created < INTERVAL  '7' DAY AND NOW() - updated > INTERVAL '1' DAY) OR
+      (NOW() - created < INTERVAL '30' DAY AND NOW() - updated > INTERVAL '7' DAY) OR
+      (NOW() - created > INTERVAL '30' DAY AND updated - created < INTERVAL '30' DAY)''').fetchall(
+    )
+    return [row[0] for row in rows]
 
 
 def mark_duplicates():
   with psycopg.connect(os.environ['DATABASE_URL']) as connection:
-    pass
+    rows = connection.execute('''
+      SELECT title, COUNT(*)
+      FROM post
+      GROUP BY 1
+      ORDER BY 2
+    ''')
 
 
 if __name__ == '__main__':
